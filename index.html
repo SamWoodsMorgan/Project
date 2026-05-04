@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Coseismic Landslide Detection and Analysis System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .card-title {
+            font-size: 1.5em;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            background: #f8f9ff;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .upload-area:hover {
+            background: #eef0ff;
+            border-color: #764ba2;
+        }
+
+        .upload-area.dragover {
+            background: #e0e4ff;
+            border-color: #764ba2;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            font-size: 1.1em;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .upload-hint {
+            font-size: 0.9em;
+            color: #999;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .file-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: #e8f5e9;
+            border-radius: 8px;
+            border-left: 4px solid #4caf50;
+            display: none;
+        }
+
+        .file-info.show {
+            display: block;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            flex: 1;
+            min-width: 200px;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:not(:disabled):hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(17, 153, 142, 0.4);
+        }
+
+        .btn-success:not(:disabled):hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(17, 153, 142, 0.6);
+        }
+
+        .status-bar {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .status-bar.show {
+            display: block;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .status-info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            color: #1976d2;
+        }
+
+        .status-success {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            color: #388e3c;
+        }
+
+        .status-error {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            color: #d32f2f;
+        }
+
+        .progress-container {
+            margin-top: 15px;
+            display: none;
+        }
+
+        .progress-container.show {
+            display: block;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+            animation: pulse 1.5s infinite;
+        }
+
+        .image-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 0;
+        }
+
+        .image-box {
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .image-box img {
+            width: 100%;
+            height: auto;
+            display: block;
+            min-height: 300px;
+            object-fit: contain;
+            background: #f5f5f5;
+        }
+
+        .image-label {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8em;
+            }
+
+            .image-comparison {
+                grid-template-columns: 1fr;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+
+            button {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏔️ Coseismic Landslide Detection and Analysis System</h1>
+            <p>Remote Sensing Image Semantic Segmentation and Intelligent Report Generation Based on U-Net + ResNet50</p>
+        </header>
+
+        <div class="card">
+            <div class="card-title">
+                <span>📤</span>
+                <span>Data Upload</span>
+            </div>
+
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">🗺️</div>
+                <div class="upload-text">Click or drag to upload remote sensing image files</div>
+                <div class="upload-hint">Supported formats: .tif, .tiff (GeoTIFF)</div>
+                <input id="fileInput" type="file" accept=".tif,.tiff" />
+            </div>
+
+            <div class="file-info" id="fileInfo">
+                <strong>Selected file:</strong> <span id="fileName"></span> |
+                <strong>Size:</strong> <span id="fileSize"></span>
+            </div>
+
+            <div class="btn-group">
+                <button id="btnSegment" class="btn-primary" disabled>
+                    <span>🔍</span>
+                    <span>Start Semantic Segmentation</span>
+                </button>
+                <button id="btnReport" class="btn-success" disabled>
+                    <span>📝</span>
+                    <span>Generate LLM Analysis Report</span>
+                </button>
+            </div>
+
+            <div class="status-bar" id="statusBar">
+                <div id="statusText"></div>
+            </div>
+
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" id="resultCard" style="display: none;">
+            <div class="card-title">
+                <span>📊</span>
+                <span>Segmentation Results</span>
+            </div>
+
+            <div class="image-comparison">
+                <div class="image-box">
+                    <img id="originalImage" alt="Original Image" />
+                    <div class="image-label">Original Remote Sensing Image</div>
+                </div>
+                <div class="image-box">
+                    <img id="segmentedImage" alt="Segmentation Result" />
+                    <div class="image-label">Segmentation Result</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = "http://localhost:8000";
+
+        const uploadArea = document.getElementById("uploadArea");
+        const fileInput = document.getElementById("fileInput");
+        const fileInfo = document.getElementById("fileInfo");
+        const fileName = document.getElementById("fileName");
+        const fileSize = document.getElementById("fileSize");
+        const btnSegment = document.getElementById("btnSegment");
+        const btnReport = document.getElementById("btnReport");
+        const statusBar = document.getElementById("statusBar");
+        const statusText = document.getElementById("statusText");
+        const progressContainer = document.getElementById("progressContainer");
+        const progressFill = document.getElementById("progressFill");
+        const resultCard = document.getElementById("resultCard");
+        const originalImage = document.getElementById("originalImage");
+        const segmentedImage = document.getElementById("segmentedImage");
+
+        let currentFile = null;
+        let lastPreviewUrl = null;
+        let startTime = null;
+
+        uploadArea.addEventListener("click", () => {
+            fileInput.click();
+        });
+
+        uploadArea.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            uploadArea.classList.add("dragover");
+        });
+
+        uploadArea.addEventListener("dragleave", () => {
+            uploadArea.classList.remove("dragover");
+        });
+
+        uploadArea.addEventListener("drop", (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove("dragover");
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelect(files[0]);
+            }
+        });
+
+        fileInput.addEventListener("change", () => {
+            if (fileInput.files && fileInput.files[0]) {
+                handleFileSelect(fileInput.files[0]);
+            }
+        });
+
+        function handleFileSelect(file) {
+            currentFile = file;
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            fileInfo.classList.add("show");
+            btnSegment.disabled = false;
+            btnReport.disabled = true;
+            resultCard.style.display = "none";
+            hideStatus();
+            hideProgress();
+            showStatus("info", "✅ File is ready, click 'Start Semantic Segmentation' to process");
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        function showStatus(type, message) {
+            statusBar.className = "status-bar show status-" + type;
+            statusText.textContent = message;
+        }
+
+        function hideStatus() {
+            statusBar.classList.remove("show");
+        }
+
+        function showProgress() {
+            progressContainer.classList.add("show");
+            progressFill.style.width = "0%";
+        }
+
+        function hideProgress() {
+            progressContainer.classList.remove("show");
+        }
+
+        function updateProgress(percent) {
+            progressFill.style.width = percent + "%";
+        }
+
+        function simulateProgress() {
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress > 90) {
+                    progress = 90;
+                    clearInterval(interval);
+                }
+                updateProgress(progress);
+            }, 500);
+            return interval;
+        }
+
+        btnSegment.addEventListener("click", async () => {
+            if (!currentFile) return;
+
+            startTime = Date.now();
+            btnSegment.disabled = true;
+            btnReport.disabled = true;
+            showStatus("info", "🔄 Performing semantic segmentation...");
+            showProgress();
+
+            const progressInterval = simulateProgress();
+
+            const form = new FormData();
+            form.append("file", currentFile);
+
+            try {
+                const res = await fetch(`${API_BASE}/api/segment`, {
+                    method: "POST",
+                    body: form
+                });
+
+                if (!res.ok) {
+                    const txt = await res.text();
+                    throw new Error(txt || `Segmentation failed: ${res.status}`);
+                }
+
+                const data = await res.json();
+                clearInterval(progressInterval);
+                updateProgress(100);
+
+                const processingTime = ((Date.now() - startTime) / 1000).toFixed(1);
+
+                setTimeout(() => {
+                    hideProgress();
+                    showStatus("success", `✅ Segmentation completed! Time elapsed: ${processingTime}s`);
+
+                    let imagesLoaded = 0;
+                    const totalImages = data.originalUrl ? 2 : 1;
+
+                    segmentedImage.onload = () => {
+                        imagesLoaded++;
+                        if (imagesLoaded === totalImages || !data.originalUrl) {
+                            resultCard.style.display = "block";
+                            resultCard.scrollIntoView({ behavior: "smooth" });
+                        }
+                    };
+
+                    segmentedImage.onerror = () => {
+                        console.error('Failed to load segmentation image');
+                        imagesLoaded++;
+                        if (imagesLoaded === totalImages) {
+                            resultCard.style.display = "block";
+                            resultCard.scrollIntoView({ behavior: "smooth" });
+                        }
+                    };
+
+                    segmentedImage.src = `${API_BASE}${data.previewUrl}`;
+
+                    if (data.originalUrl) {
+                        originalImage.onload = () => {
+                            imagesLoaded++;
+                            if (imagesLoaded === totalImages) {
+                                resultCard.style.display = "block";
+                                resultCard.scrollIntoView({ behavior: "smooth" });
+                            }
+                        };
+
+                        originalImage.onerror = () => {
+                            console.error('Failed to load original image');
+                            originalImage.alt = 'Failed to load original image';
+                            originalImage.style.display = 'none';
+                            imagesLoaded++;
+                            if (imagesLoaded === totalImages) {
+                                resultCard.style.display = "block";
+                                resultCard.scrollIntoView({ behavior: "smooth" });
+                            }
+                        };
+
+                        originalImage.src = `${API_BASE}${data.originalUrl}`;
+                        originalImage.style.display = 'block';
+                    } else {
+                        originalImage.src = '';
+                        originalImage.alt = 'Original image preview not available';
+                        originalImage.style.display = 'none';
+                        resultCard.style.display = "block";
+                        resultCard.scrollIntoView({ behavior: "smooth" });
+                    }
+
+                    btnReport.disabled = false;
+                }, 500);
+
+            } catch (e) {
+                clearInterval(progressInterval);
+                hideProgress();
+                showStatus("error", "❌ Segmentation failed: " + e.message);
+                btnSegment.disabled = false;
+            }
+        });
+
+        btnReport.addEventListener("click", async () => {
+            btnSegment.disabled = true;
+            btnReport.disabled = true;
+            showStatus("info", "🤖 Calling LLM to generate professional analysis report...");
+            showProgress();
+            updateProgress(30);
+
+            try {
+                const res = await fetch(`${API_BASE}/api/report`, { method: "POST" });
+
+                if (!res.ok) {
+                    const txt = await res.text();
+                    throw new Error(txt || `Report generation failed: ${res.status}`);
+                }
+
+                updateProgress(70);
+
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+
+                updateProgress(100);
+
+                setTimeout(() => {
+                    hideProgress();
+
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `landslide_report_${new Date().getTime()}.docx`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+
+                    showStatus("success", "✅ Report generated, download started!");
+                    btnSegment.disabled = false;
+                    btnReport.disabled = false;
+                }, 500);
+
+            } catch (e) {
+                hideProgress();
+                showStatus("error", "❌ Report generation failed: " + e.message);
+                btnSegment.disabled = false;
+                btnReport.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
